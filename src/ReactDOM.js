@@ -1,31 +1,36 @@
+import { request } from "express";
+
 const ReactDOM = {
-  render(element, container, callback) {
+  /**
+   *
+   * callback暂时不讨论所以直接屏蔽了
+   */
+  render(element, container /* , callback */) {
+    // 暂时用不到的参数就直接注释
     return legacyRenderSubtreeIntoContainer(
-      null,
+      // null,
       element,
-      container,
-      false,
-      callback
+      container
+      // false,
+      // callback
     );
-  }
+  },
 };
 
 function legacyRenderSubtreeIntoContainer(
-  parentComponent,
+  // parentComponent,
   children,
-  container,
-  forceHydrate,
-  callback
+  container
+  /* forceHydrate,
+  callback */
 ) {
   let root = container._reactRootContainer;
   if (!root) {
     root = container._reactRootContainer = legacyCreateRootFromDOMContainer(
-      container,
-      false
+      container
+      // false
     );
-    unbatchedUpdates(() => {
-      root.render(children, undefined);
-    });
+    root.render(children, undefined);
   } else {
   }
   return getPublicRootInstance(root._internalRoot);
@@ -39,23 +44,23 @@ function getPublicRootInstance(container) {
 }
 
 function legacyCreateRootFromDOMContainer(container) {
-  return new ReactRoot(container, false, false);
+  return new ReactRoot(container /* , false, false */);
 }
 
-function ReactRoot(container, isConcurrent, hydrate) {
-  const root = createContainer(container, isConcurrent, hydrate);
+function ReactRoot(container /* , isConcurrent, hydrate */) {
+  const root = createContainer(container /* , isConcurrent, hydrate */);
   this._internalRoot = root;
 }
 
-ReactRoot.prototype.render = function(children) {
+ReactRoot.prototype.render = function (children) {
   const root = this._internalRoot;
   const work = new ReactWork();
-  updateContainer(children, root, null, work._onCommit);
+  updateContainer(children, root /* , null, work._onCommit */);
   return work;
 };
-ReactRoot.prototype.unmount = function() {};
-ReactRoot.prototype.legacy_renderSubtreeIntoContainer = function() {};
-ReactRoot.prototype.createBatch = function() {};
+ReactRoot.prototype.unmount = function () {};
+ReactRoot.prototype.legacy_renderSubtreeIntoContainer = function () {};
+ReactRoot.prototype.createBatch = function () {};
 
 function ReactWork() {
   this._callbacks = null;
@@ -63,7 +68,7 @@ function ReactWork() {
   this._onCommit = this._onCommit.bind(this);
 }
 
-ReactWork.prototype.then = function(onCommit) {
+ReactWork.prototype.then = function (onCommit) {
   if (this._didCommit) {
     onCommit();
     return;
@@ -75,7 +80,7 @@ ReactWork.prototype.then = function(onCommit) {
   callbacks.push(onCommit);
 };
 
-ReactWork.prototype._onCommit = function() {
+ReactWork.prototype._onCommit = function () {
   if (this._didCommit) {
     return;
   }
@@ -133,31 +138,82 @@ function FiberRootNode(containerInfo) {
   this.containerInfo = containerInfo;
 }
 
-function updateContainer(element, container, parentComponent, callback) {
+function updateContainer(element, container /* , parentComponent, callback */) {
   const current = container.current;
   // const currentTime = requestCurrentTime();
   // const expirationTime = computeExpirationForFiber(currentTime, current);
   return updateContainerAtExpirationTime(
     element,
     container,
-    parentComponent,
-    // expirationTime,
-    1073741823,
-    callback
+    // parentComponent,
+    /**
+     *  第一次渲染是定值expirationTime,
+     */
+    1073741823
+    // callback
   );
 }
 
 function updateContainerAtExpirationTime(
   element,
   container,
-  parentComponent,
-  expirationTime,
-  callback
+  // parentComponent,
+  expirationTime
+  // callback
 ) {
   const current = container.current;
-  return scheduleRootUpdate(current, element, expirationTime, callback);
+  return scheduleRootUpdate(current, element, expirationTime /* , callback */);
 }
 
 function scheduleRootUpdate(current, element, expirationTime, call) {
+  schduleWork(current, expirationTime);
   return expirationTime;
+}
+
+function schduleWork(fiber, expirationTime) {
+  requestWork(fiber, expirationTime);
+}
+let nextFlushedRoot = null;
+let nextFlushedExpirationTime = 1073741823;
+
+function requestWork(root, expirationTime) {
+  nextFlushedRoot = root;
+  performSyncWork();
+}
+
+function performSyncWork() {
+  performWork(Sync, false);
+}
+
+function performWork(minExpirationTime, isYieldy) {
+  performWorkOnRoot(nextFlushedRoot, nextFlushedExpirationTime, false);
+}
+
+function performWorkOnRoot(root, expirationTime, isYieldy) {
+  completeRoot(root, root.current, expirationTime);
+}
+
+function completeRoot(root, finishdWork, expirationTime) {
+  commitRoot(root, finishdWork);
+}
+
+let nextEffect = null;
+function commitRoot(root, finishdWork) {
+  nextEffect = finishedWork.firstEffect;
+  commitAllHostEffects();
+}
+
+function commitAllHostEffects() {
+  commitPlacement(nextEffect);
+}
+
+function commitPlacement(finishedWork) {
+  let node = finishedWork;
+  let parent = parentFiber.stateNode;
+  appendChildToContainer(parent, node.stateNode);
+}
+
+function appendChildToContainer(container, child) {
+  let parentNode = container;
+  parentNode.appendChild(child);
 }
