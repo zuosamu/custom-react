@@ -5,7 +5,7 @@ const divComp = React.createElement(
   "div",
   {
     className: "divComp",
-    key: "divComp"
+    key: "divComp",
   },
   "this is a div component"
 );

@@ -1,5 +1,3 @@
-import { request } from "express";
-
 const ReactDOM = {
   /**
    *
@@ -107,6 +105,7 @@ function createFiberRoot(containerInfo) {
 }
 function createHostRootFiber(isConcurrent) {
   let mode = 0b000;
+  let HostRoot = 3;
   return createFiber(HostRoot, null, null, mode);
 }
 
@@ -171,8 +170,16 @@ function scheduleRootUpdate(current, element, expirationTime, call) {
 }
 
 function schduleWork(fiber, expirationTime) {
-  requestWork(fiber, expirationTime);
+  const root = scheduleWorkToRoot(fiber, expirationTime);
+  requestWork(root, expirationTime);
 }
+
+function scheduleWorkToRoot(fiber, expirationTime) {
+  fiber.expirationTime = expirationTime;
+  let root = fiber.stateNode;
+  return root;
+}
+
 let nextFlushedRoot = null;
 let nextFlushedExpirationTime = 1073741823;
 
@@ -180,6 +187,8 @@ function requestWork(root, expirationTime) {
   nextFlushedRoot = root;
   performSyncWork();
 }
+
+let Sync = 1073741823;
 
 function performSyncWork() {
   performWork(Sync, false);
@@ -190,16 +199,149 @@ function performWork(minExpirationTime, isYieldy) {
 }
 
 function performWorkOnRoot(root, expirationTime, isYieldy) {
-  completeRoot(root, root.current, expirationTime);
+  renderRoot(root);
+  completeRoot(root, root.finishedWork, expirationTime);
 }
 
-function completeRoot(root, finishdWork, expirationTime) {
-  commitRoot(root, finishdWork);
+let nextUnitOfWork = null;
+
+function renderRoot(root) {
+  nextUnitOfWork = createWorkInProgress(root.current, null, 1073741823);
+  workLoop();
+  const rootWorkInProgress = root.current.alternate;
+  onComplete(root, rootWorkInProgress, 1073741823);
+}
+
+function onComplete(root, finishedWork, expirationTime) {
+  root.pendingCommitExpirationTime = expirationTime;
+  root.finishedWork = finishedWork;
+}
+
+function createWorkInProgress(current, pendingProps, expirationTime) {
+  let workInProgress = current.alternate;
+  if (workInProgress == null) {
+    workInProgress = createFiber(
+      current.tag,
+      pendingProps,
+      current.key,
+      current.mode
+    );
+    workInProgress.elementType = current.elementType;
+    workInProgress.type = current.type || "div";
+    workInProgress.stateNode = current.stateNode;
+    workInProgress.alternate = current;
+    current.alternate = workInProgress;
+  }
+  return workInProgress;
+}
+
+function workLoop() {
+  nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
+}
+
+function performUnitOfWork(workInProgress) {
+  let next = completeUnitOfWork(workInProgress);
+  return next;
+}
+
+function completeUnitOfWork(workInProgress) {
+  nextUnitOfWork = completeWork(null, workInProgress, 1073741823);
+}
+
+let rootContainerInstance = document.getElementById("app");
+
+function completeWork(current, workInProgress, nextRenderExpirationTime) {
+  let type = workInProgress.type;
+  let newProps = null;
+  let instance = createInstance(
+    type,
+    (newProps = { className: "divComp", children: "this is a div component" }),
+    rootContainerInstance,
+    {},
+    workInProgress
+  );
+  // appendAllChildren(instance, workInProgress, false, false);
+  finalizeInitialChildren(instance, type, newProps, rootContainerInstance, {});
+  workInProgress.stateNode = instance;
+  console.log(workInProgress);
+}
+
+function finalizeInitialChildren(
+  domElement,
+  type,
+  props,
+  rootContainerInstance,
+  hostContext
+) {
+  setInitialProperties(domElement, type, props, rootContainerInstance);
+  // return shouldAutoFocusHostComponent(type, newProps);
+}
+
+function shuldAutoFocusHostComponent(type) {}
+
+function setInitialProperties(domElement, tag, rowProps, rootContainerElement) {
+  setInitialDOMProperties(
+    tag,
+    domElement,
+    rootContainerElement,
+    rowProps,
+    false
+  );
+}
+
+function setInitialDOMProperties(
+  tag,
+  domElement,
+  rootContainerElement,
+  nextProps,
+  isCustomComponentTag
+) {
+  for (const propKey in nextProps) {
+    if (!nextProps.hasOwnProperty(propKey)) {
+      continue;
+    }
+    const nextProp = nextProps[propKey];
+    if (propKey === "children") {
+      if (typeof nextProp === "string") {
+        setTextContent(domElement, nextProp);
+      }
+    }
+    if (propKey != null) {
+      // setValueForProperty(domElement, propKey, nextProp, isCustomComponentTag);
+    }
+  }
+}
+
+function setTextContent(node, text) {
+  if (text) {
+  }
+  node.textContent = text;
+}
+
+function createInstance(
+  type,
+  props,
+  rootContainerInstance,
+  hostContext,
+  insternalInstanceHandle
+) {
+  const domElement = createElement(type, props, rootContainerInstance, "aaa");
+  return domElement;
+}
+
+function createElement(type, props, rootContainerElement, parentNamespace) {
+  const ownerDocument = document;
+  let domElement = ownerDocument.createElement(type);
+  return domElement;
+}
+
+function completeRoot(root, finishedWork, expirationTime) {
+  commitRoot(root, finishedWork);
 }
 
 let nextEffect = null;
-function commitRoot(root, finishdWork) {
-  nextEffect = finishedWork.firstEffect;
+function commitRoot(root, finishedWork) {
+  nextEffect = finishedWork;
   commitAllHostEffects();
 }
 
@@ -209,7 +351,7 @@ function commitAllHostEffects() {
 
 function commitPlacement(finishedWork) {
   let node = finishedWork;
-  let parent = parentFiber.stateNode;
+  let parent = node.alternate.stateNode.containerInfo;
   appendChildToContainer(parent, node.stateNode);
 }
 
@@ -217,3 +359,5 @@ function appendChildToContainer(container, child) {
   let parentNode = container;
   parentNode.appendChild(child);
 }
+
+export default ReactDOM;
