@@ -1,15 +1,45 @@
 const ReactDOM = {
-  render(element,container){
-    return legacyRenderSubtreeIntoContainer(element,container);
+  render(element, container) {
+    return legacyRenderSubtreeIntoContainer(element, container);
+  },
+};
+
+function legacyRenderSubtreeIntoContainer(children, container) {
+  const instance = createInstance(children.type);
+  setInitialDOMProperties(instance, children.props);
+  appendChildToContainer(container, instance);
+}
+
+function appendChildToContainer(container, child) {
+  container.appendChild(child);
+}
+
+function setInitialDOMProperties(domElement, nextProps) {
+  for (const propKey in nextProps) {
+    if (!nextProps.hasOwnProperty(propKey)) {
+      continue;
+    }
+    const nextProp = nextProps[propKey];
+    if (propKey === "children") {
+      if (typeof nextProp === "string") {
+        setTextContent(domElement, nextProp);
+      }
+    }
   }
 }
 
-function legacyRenderSubtreeIntoContainer(children,container) {
-  appendChildToContainer(container,children)
+function setTextContent(node, text) {
+  node.textContent = text;
 }
 
-function appendChildToContainer(container,child) {
-  container.appendChild(child)
+function createInstance(type) {
+  const domElement = createElement(type);
+  return domElement;
 }
 
-export default ReactDOM
+function createElement(type) {
+  const ownerDocument = document;
+  let domElement = ownerDocument.createElement(type);
+  return domElement;
+}
+export default ReactDOM;
