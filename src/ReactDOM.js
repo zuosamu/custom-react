@@ -1,3 +1,5 @@
+import { setValueForProperty } from "./DOMPropertyOperations";
+
 const ReactDOM = {
   render(element, container) {
     return legacyRenderSubtreeIntoContainer(element, container);
@@ -24,6 +26,8 @@ function setInitialDOMProperties(domElement, nextProps) {
       if (typeof nextProp === "string") {
         setTextContent(domElement, nextProp);
       }
+    } else if (propKey != null) {
+      setValueForProperty(domElement, propKey, nextProp);
     }
   }
 }
