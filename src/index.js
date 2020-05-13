@@ -7,6 +7,7 @@ const divComp = React.createElement(
   {
     className: "divComp",
     key: "divComp",
+    onClick:alert
   },
   "this is a div component"
 );
